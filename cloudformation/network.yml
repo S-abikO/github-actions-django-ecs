@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "GitHub Actions CI/CD"
+
+Parameters:
+  MyEnvName:
+    Type: String
+    Default: "Abiko0914"
+
+Resources: 
+
+  # ------------------------------------------------------------#
+  #  VPC
+  # ------------------------------------------------------------#
+  MyVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.3.0.0/16
+      InstanceTenancy: default
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value: !Sub "${MyEnvName} VPC"
+  
+  # ------------------------------------------------------------#
+  #  Internet Gateway
+  # ------------------------------------------------------------#
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Sub "${MyEnvName} InternetGateway"
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref MyVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # ------------------------------------------------------------#
+  #  Route Table
+  # ------------------------------------------------------------#
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachGateway
+    Properties:
+      VpcId: !Ref MyVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${MyEnvName} RouteTable"
+  Route:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  
+  # ------------------------------------------------------------#
+  #  Public Sunbet A
+  # ------------------------------------------------------------#
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: 10.3.1.0/24
+      MapPublicIpOnLaunch: 'true'
+      VpcId: !Ref MyVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${MyEnvName} PublicSubnetA"
+  PublicRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref RouteTable 
+
+  # ------------------------------------------------------------#
+  #  Security Group
+  # ------------------------------------------------------------#
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH from Internet
+      VpcId: !Ref MyVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${MyEnvName} SecurityGroup"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+
+  # ------------------------------------------------------------#
+  #  EC2 Instance
+  # ------------------------------------------------------------#
+  WebServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0b89f7b3f054b957e
+      InstanceType: t2.micro
+      KeyName: CMITS2207-KeyPair
+      SubnetId: !Ref PublicSubnetA
+      SecurityGroupIds:
+        - !Ref MySecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${MyEnvName} WebServer"
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          sudo yum update -y && \
+          sudo amazon-linux-extras install  -y docker && \
+          sudo usermod -a -G docker ec2-user && \
+          sudo systemctl start docker.service && \
+          sudo systemctl status docker.service && \
+          sudo systemctl enable docker.service && \
+          sudo curl -L https://github.com/docker/compose/releases/download/1.21.0/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose && \
+          sudo chmod +x /usr/local/bin/docker-compose && \
+          sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+Outputs:
+  VPC1:
+    Value: !Ref MyVPC
+    Export: 
+      Name: !Sub "${MyEnvName}-VPCName"
+  SubnetA:
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: !Sub "${MyEnvName}-SubnetName"
+
