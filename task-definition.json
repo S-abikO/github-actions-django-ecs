@@ -1,5 +1,5 @@
 {
-    "taskDefinitionArn": "arn:aws:ecs:ap-southeast-1:458247080796:task-definition/abiko-stack-django-app:3",
+    "taskDefinitionArn": "arn:aws:ecs:ap-southeast-1:458247080796:task-definition/abiko-stack-django-app:4",
     "containerDefinitions": [
         {
             "name": "Abiko0914-django-container",
@@ -43,7 +43,7 @@
     "family": "abiko-stack-django-app",
     "executionRoleArn": "arn:aws:iam::458247080796:role/Abiko0914-ECSTaskExecutionRole",
     "networkMode": "awsvpc",
-    "revision": 3,
+    "revision": 4,
     "volumes": [],
     "status": "ACTIVE",
     "requiresAttributes": [
@@ -82,6 +82,6 @@
     ],
     "cpu": "256",
     "memory": "512",
-    "registeredAt": "2022-09-16T17:42:49.864000+09:00",
+    "registeredAt": "2022-09-16T18:12:05.078000+09:00",
     "registeredBy": "arn:aws:iam::458247080796:user/abiko"
 }
