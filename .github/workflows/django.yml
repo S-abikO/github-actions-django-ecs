@@ -32,6 +32,6 @@
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: django-service
-        cluster: django-cluster
+        service: Abiko0914-django-service
+        cluster: Abiko0914-django-cluster
         wait-for-service-stability: true
